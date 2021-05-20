@@ -12,8 +12,11 @@ Resources:
               - 'sts:AssumeRoleWithWebIdentity'
             Condition:
               StringEquals:
-                'oidc.eks.us-east-1.amazonaws.com/id/E2887E712D99522A376BA25C168ACCA3:aud': sts.amazonaws.com
-                'oidc.eks.us-east-1.amazonaws.com/id/E2887E712D99522A376BA25C168ACCA3:sub': 'system:serviceaccount:kube-system:aws-node'
+                'oidc.eks.us-east-1.amazonaws.com/id/1D0EDA1665A6CCAA78249DBA68D926A6:aud': sts.amazonaws.com
+                'oidc.eks.us-east-1.amazonaws.com/id/1D0EDA1665A6CCAA78249DBA68D926A6:sub': 'system:serviceaccount:kube-system:aws-node'
+                #'oidc.eks.us-east-1.amazonaws.com/id/E2887E712D99522A376BA25C168ACCA3:aud': sts.amazonaws.com
+                #'oidc.eks.us-east-1.amazonaws.com/id/E2887E712D99522A376BA25C168ACCA3:sub': 'system:serviceaccount:kube-system:aws-node'
+
             Effect: Allow
             Principal:
               Federated: >-
