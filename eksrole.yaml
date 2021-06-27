@@ -1,29 +1,122 @@
-AWSTemplateFormatVersion: 2010-09-09
-Description: >-
-  IAM role for serviceaccount "kube-system/aws-node" [created and managed by
-  eksctl]
+Parameters:
+  EKSClusterName:
+    Type: String
+    Description: Provide the name for EKS Cluster
+    Default: Stack-01-EKS-eks-cloudformation
 Resources:
-  Role1:
+  ClusterName:
+      Type: Custom::ClusterName
+      Properties:
+        ServiceToken: !GetAtt LambdaFunction.Arn
+        cluster_name:
+          Ref: EKSClusterName
+  MyIAMRole:
+      Type: AWS::IAM::Role
+      DependsOn: ClusterName
+      Properties:
+        AssumeRolePolicyDocument: !Sub |
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Federated": "arn:aws:iam::${AWS::AccountId}:oidc-provider/${ClusterName.oidc}"
+                },
+                "Action": "sts:AssumeRoleWithWebIdentity",
+                "Condition": {
+                  "StringEquals": {
+                    "${ClusterName.oidc}:aud": "system:serviceaccount:default:my-serviceaccount"
+                  }
+                }
+              }
+            ]
+          }
+  LambdaIAMRole:
     Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
-        Statement:
-          - Action:
-              - 'sts:AssumeRoleWithWebIdentity'
-            Condition:
-              StringEquals:
-                'oidc.eks.us-east-1.amazonaws.com/id/1D0EDA1665A6CCAA78249DBA68D926A6:aud': sts.amazonaws.com
-                'oidc.eks.us-east-1.amazonaws.com/id/1D0EDA1665A6CCAA78249DBA68D926A6:sub': 'system:serviceaccount:kube-system:aws-node'
-                #'oidc.eks.us-east-1.amazonaws.com/id/E2887E712D99522A376BA25C168ACCA3:aud': sts.amazonaws.com
-                #'oidc.eks.us-east-1.amazonaws.com/id/E2887E712D99522A376BA25C168ACCA3:sub': 'system:serviceaccount:kube-system:aws-node'
-
-            Effect: Allow
-            Principal:
-              Federated: >-
-                arn:aws:iam::291045144839:oidc-provider/oidc.eks.us-east-1.amazonaws.com/id/E2887E712D99522A376BA25C168ACCA3
         Version: 2012-10-17
-      ManagedPolicyArns:
-        - 'arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'eks:DescribeCluster'
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: 'arn:aws:logs:*:*:*'
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          import cfnresponse
+          import boto3
+          import json
+          def lambda_handler(event, context):
+              print("Received event: " + json.dumps(event, indent=2))
+              oidc_response = ''
+              responseData = {}
+              try:
+                  if event['RequestType'] == 'Delete':
+                      print("Request Type:",event['RequestType'])
+                      print("Delete Request - No Physical resources to delete")
+                  elif event['RequestType'] == 'Create' or event['RequestType'] == 'Update':
+                      print("Request Type:",event['RequestType'])
+                      cluster_name = event['ResourceProperties']['cluster_name']
+                      oidc_response_url = fetchClusterOIDC(cluster_name)
+                      oidc_response=oidc_response_url.split("https://")[1]
+                      responseData['oidc'] = oidc_response
+                  print("Sending response to custom resource for event type " + event['RequestType'])
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData, "CustomResourcePhysicalID")
+                  return oidc_response
+              except Exception as e:
+                  print('Failed to process:', e)
+                  responseStatus = 'FAILURE'
+                  responseData = {'Failure': 'Something bad happened.'}
+                  cfnresponse.send(event, context, cfnresponse.FAILED, responseData, "CustomResourcePhysicalID")
+          def fetchClusterOIDC(cluster_name):
+              print("Getting Cluster OIDC value for cluster name "+ cluster_name)
+              oidc = ''
+              client = boto3.client('eks')
+              try:
+                  response = client.describe_cluster(
+                      name=cluster_name
+                  )
+                  if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+                      print("Success response recieved for describing cluster "+ cluster_name)
+                      oidc = (response['cluster']['identity']['oidc']['issuer'])
+                      print('OIDC output recieved '+ oidc + ' for Cluster Name ' + cluster_name)
+                  return oidc
+              except Exception as e:
+                  print('Failed to fetch Cluster OIDC value for cluster name ' + cluster_name, e)
+      Handler: index.lambda_handler
+      MemorySize: 1024
+      Role: !GetAtt LambdaIAMRole.Arn
+      Runtime: python3.7
+      Timeout: 300
 Outputs:
+  OIDC:
+    Description: EKS Cluster OIDC Value
+    Value:
+      Fn::GetAtt:
+      - ClusterName
+      - oidc
   Role1:
-    Value: !GetAtt Role1.Arn
+    Value: !GetAtt MyIAMRole.Arn
+      
