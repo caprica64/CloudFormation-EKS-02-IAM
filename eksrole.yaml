@@ -1,5 +1,5 @@
 Parameters:
-  ClusterStackName:
+  EKSClusterName:
     Default: "EKS-01-Cluster"
     Type: String
 #  ClusterName:
