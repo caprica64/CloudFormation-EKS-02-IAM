@@ -1,4 +1,7 @@
-#Parameters:
+Parameters:
+  ClusterStackName:
+    Default: "EKS-01-Cluster"
+    Type: String
 #  ClusterName:
 #    Type: String
 #    Description: Provide the name for EKS Cluster
@@ -8,10 +11,7 @@ Resources:
       Type: Custom::ClusterName
       Properties:
         ServiceToken: !GetAtt LambdaFunction.Arn
-        cluster_name: !ImportValue '${ClusterStackName}-EKSClusterName'
-          #"Fn::Sub": '${ClusterStackName}-EKSClusterName'
-          #!Sub '${ClusterStackName}::EKSClusterName'
-          #Ref: EKSClusterName
+        cluster_name: !Ref EKSClusterName
   MyIAMRole:
       Type: AWS::IAM::Role
       DependsOn: ClusterName
