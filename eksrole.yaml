@@ -8,7 +8,7 @@ Resources:
       Type: Custom::ClusterName
       Properties:
         ServiceToken: !GetAtt LambdaFunction.Arn
-        cluster_name: !ImportValue
+        cluster_name: !ImportValue '${ClusterStackName}::EKSClusterName'
           #Ref: EKSClusterName
   MyIAMRole:
       Type: AWS::IAM::Role
