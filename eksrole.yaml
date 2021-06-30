@@ -1,5 +1,5 @@
 Parameters:
-  EKSClusterName:
+  ClusterName:
     Type: String
     Description: Provide the name for EKS Cluster
     Default: EKS-01-Cluster-eks-cloudformation
