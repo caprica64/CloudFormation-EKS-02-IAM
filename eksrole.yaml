@@ -1,13 +1,13 @@
 Parameters:
-  ClusterName:
-    Default: "EKS-01-Cluster"
+  EKSClusterName:
+    Default: "EKS-01-Cluster-eks-cloudformation"
     Type: String
 Resources:
   ClusterName:
       Type: Custom::ClusterName
       Properties:
         ServiceToken: !GetAtt LambdaFunction.Arn
-        cluster_name: !Ref ClusterName
+        cluster_name: !Ref EKSClusterName
   MyIAMRole:
       Type: AWS::IAM::Role
       DependsOn: ClusterName
