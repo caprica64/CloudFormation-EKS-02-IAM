@@ -1,4 +1,4 @@
-Parameters:
+#Parameters:
 #  ClusterName:
 #    Type: String
 #    Description: Provide the name for EKS Cluster
