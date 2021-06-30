@@ -8,8 +8,8 @@ Resources:
       Type: Custom::ClusterName
       Properties:
         ServiceToken: !GetAtt LambdaFunction.Arn
-        cluster_name: !ImportValue
-          "Fn::Sub": '${ClusterStackName}-EKSClusterName'
+        cluster_name: !ImportValue '${ClusterStackName}-EKSClusterName'
+          #"Fn::Sub": '${ClusterStackName}-EKSClusterName'
           #!Sub '${ClusterStackName}::EKSClusterName'
           #Ref: EKSClusterName
   MyIAMRole:
