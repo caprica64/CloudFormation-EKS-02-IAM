@@ -2,7 +2,7 @@ Parameters:
   EKSClusterName:
     Type: String
     Description: Provide the name for EKS Cluster
-    Default: Stack-01-EKS-eks-cloudformation
+    Default: EKS-01-Cluster-eks-cloudformation
 Resources:
   ClusterName:
       Type: Custom::ClusterName
